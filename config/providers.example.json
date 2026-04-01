@@ -1,0 +1,22 @@
+{
+  "lmstudio": {
+    "url": "http://127.0.0.1:1234/v1/chat/completions",
+    "modelsUrl": "http://127.0.0.1:1234/v1/models",
+    "enabled": true,
+    "defaults": { "temperature": 0.7, "max_tokens": 200 }
+  },
+  "claude": {
+    "url": "https://api.anthropic.com/v1/messages",
+    "apiKey": "",
+    "model": "claude-sonnet-4-20250514",
+    "enabled": true,
+    "defaults": { "max_tokens": 200 }
+  },
+  "gemini": {
+    "url": "https://generativelanguage.googleapis.com/v1beta/models",
+    "apiKey": "",
+    "model": "gemini-2.0-flash",
+    "enabled": true,
+    "defaults": { "maxOutputTokens": 200, "temperature": 0.7 }
+  }
+}

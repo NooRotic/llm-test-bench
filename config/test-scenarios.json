@@ -1,0 +1,8 @@
+[
+  { "id": "eagles_question", "user": "CrowBlkDream", "message": "yo rip what do you think about the eagles this season?", "category": "casual_opinion" },
+  { "id": "history_question", "user": "NooRoticX", "message": "rip explain the significance of the Black Panther Party in 3 sentences", "category": "factual_serious" },
+  { "id": "coding_help", "user": "DevBoul42", "message": "how do I center a div in CSS? been stuck for an hour", "category": "technical" },
+  { "id": "roast_request", "user": "xXShadowLordXx", "message": "roast me rip", "category": "humor" },
+  { "id": "greeting", "user": "FirstTimeViewer", "message": "hey rip first time here, whats this stream about?", "category": "welcome" },
+  { "id": "follow_prompt", "user": "LurkerAndy", "message": "why should I follow this channel?", "category": "engagement" }
+]

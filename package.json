@@ -1,0 +1,11 @@
+{
+  "name": "llm-test-bench",
+  "version": "0.1.0",
+  "description": "Compare LLM responses across local and cloud providers",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.mjs",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "license": "MIT"
+}
