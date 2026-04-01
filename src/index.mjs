@@ -26,6 +26,14 @@ async function main() {
   console.log('\nLLM Test Bench v0.1.0');
   console.log('━━━━━━━━━━━━━━━━━━━━━\n');
 
+  const args = process.argv.slice(2);
+  const nonInteractive = args.includes('--all') || args.includes('--local-only') || args.includes('--cloud-only') || !process.stdin.isTTY;
+  const includeLocal = !args.includes('--cloud-only');
+  const includeCloud = !args.includes('--local-only');
+  // --models 1,2,4 to pick specific local models by index
+  const modelArg = args.find(a => a.startsWith('--models='));
+  const modelIndices = modelArg ? modelArg.split('=')[1].split(',').map(s => parseInt(s.trim()) - 1) : null;
+
   const providerConfigs = loadJson('config/providers.json');
   const systemPrompts = loadJson('config/system-prompts.json');
   const scenarios = loadJson('config/test-scenarios.json');
@@ -34,11 +42,11 @@ async function main() {
   console.log(`  System prompts: ${Object.keys(systemPrompts).length} loaded`);
   console.log(`  Test scenarios: ${scenarios.length} loaded\n`);
 
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const rl = nonInteractive ? null : readline.createInterface({ input: process.stdin, output: process.stdout });
   const selectedModels = [];
 
   // Discover LMStudio models
-  if (providerConfigs.lmstudio?.enabled) {
+  if (providerConfigs.lmstudio?.enabled && includeLocal) {
     console.log(`Discovering LMStudio models at ${providerConfigs.lmstudio.modelsUrl}...`);
     const localModels = await discoverModels(providerConfigs.lmstudio);
 
@@ -46,22 +54,35 @@ async function main() {
       console.log('  No LMStudio models found (server not running?)\n');
     } else {
       console.log(`  Found ${localModels.length} models.\n`);
-      console.log('Select local models for this run:');
-      localModels.forEach((m, i) => console.log(`  [${i + 1}] ${m.id}`));
-      console.log('');
 
-      const answer = await ask(rl, "  Enter numbers (comma-separated), 'all', or 'none': ");
-      const trimmed = answer.trim().toLowerCase();
-
-      if (trimmed === 'all') {
-        selectedModels.push(...localModels);
-      } else if (trimmed !== 'none' && trimmed !== '') {
-        const indices = trimmed.split(',').map(s => parseInt(s.trim()) - 1);
-        for (const i of indices) {
-          if (i >= 0 && i < localModels.length) selectedModels.push(localModels[i]);
+      if (nonInteractive) {
+        // Non-interactive: use --models=1,2 or take all
+        if (modelIndices) {
+          for (const i of modelIndices) {
+            if (i >= 0 && i < localModels.length) selectedModels.push(localModels[i]);
+          }
+        } else {
+          selectedModels.push(...localModels);
         }
+        console.log(`  Auto-selected ${selectedModels.length} local model(s)\n`);
+      } else {
+        console.log('Select local models for this run:');
+        localModels.forEach((m, i) => console.log(`  [${i + 1}] ${m.id}`));
+        console.log('');
+
+        const answer = await ask(rl, "  Enter numbers (comma-separated), 'all', or 'none': ");
+        const trimmed = answer.trim().toLowerCase();
+
+        if (trimmed === 'all') {
+          selectedModels.push(...localModels);
+        } else if (trimmed !== 'none' && trimmed !== '') {
+          const indices = trimmed.split(',').map(s => parseInt(s.trim()) - 1);
+          for (const i of indices) {
+            if (i >= 0 && i < localModels.length) selectedModels.push(localModels[i]);
+          }
+        }
+        console.log(`  Selected ${selectedModels.length} local model(s)\n`);
       }
-      console.log(`  Selected ${selectedModels.length} local model(s)\n`);
     }
   }
 
@@ -71,15 +92,22 @@ async function main() {
 
   const hasCloud = (claudeKey && providerConfigs.claude?.enabled) || (geminiKey && providerConfigs.gemini?.enabled);
 
-  if (hasCloud) {
+  if (hasCloud && includeCloud) {
     console.log('Cloud providers:');
     if (claudeKey && providerConfigs.claude?.enabled) console.log(`  [✓] Claude (${providerConfigs.claude.model}) — API key found`);
     else console.log('  [ ] Claude — no API key');
     if (geminiKey && providerConfigs.gemini?.enabled) console.log(`  [✓] Gemini (${providerConfigs.gemini.model}) — API key found`);
     else console.log('  [ ] Gemini — no API key');
 
-    const includeCloud = await ask(rl, '  Include cloud providers? (Y/n): ');
-    if (includeCloud.trim().toLowerCase() !== 'n') {
+    let addCloud = true;
+    if (!nonInteractive) {
+      const answer = await ask(rl, '  Include cloud providers? (Y/n): ');
+      addCloud = answer.trim().toLowerCase() !== 'n';
+    } else {
+      console.log('  Auto-including cloud providers');
+    }
+
+    if (addCloud) {
       if (claudeKey && providerConfigs.claude?.enabled) {
         selectedModels.push({ id: providerConfigs.claude.model, provider: 'claude' });
       }
@@ -90,7 +118,7 @@ async function main() {
     console.log('');
   }
 
-  rl.close();
+  if (rl) rl.close();
 
   if (selectedModels.length === 0) {
     console.log('No models selected. Exiting.');
